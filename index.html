@@ -321,6 +321,73 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ── Task table: horizontal scroll on narrow viewports ── */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ── Responsive: tablet ───────────────────────────────── */
+@media (max-width: 980px) {
+  body { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+  aside { border-left: none; border-top: 1px solid var(--border); }
+  .charts-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Responsive: smartphone ───────────────────────────── */
+@media (max-width: 640px) {
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-size: 13.5px; overflow-y: auto; }
+
+  header { padding: 12px 16px; flex-wrap: wrap; row-gap: 4px; }
+  header h1 { font-size: 15px; }
+  .header-date { font-size: 12px; }
+
+  main { padding: 16px 14px; gap: 16px; overflow-y: visible; }
+  aside { padding: 20px 14px; gap: 16px; overflow-y: visible; }
+
+  .card { padding: 16px 14px; }
+  .card-title { font-size: 10.5px; margin-bottom: 12px; }
+
+  .date-row { flex-wrap: wrap; row-gap: 8px; }
+
+  /* Task table keeps its layout but scrolls horizontally instead of squeezing */
+  .table-scroll { margin: 0 -14px; padding: 0 14px; }
+  .task-table { min-width: 620px; font-size: 12.5px; }
+  .imp-pip { width: 28px; height: 28px; }               /* bigger touch target */
+  .imp-label { display: none; }                          /* free up width; color still conveys level */
+
+  .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-box { padding: 12px; }
+  .stat-value { font-size: 17px; }
+
+  .chart-controls { flex-wrap: wrap; }
+  .chart-wrap canvas { max-width: 100%; }
+
+  .cal-grid { gap: 4px; }
+  .cal-day { min-height: 52px; padding: 5px 5px; gap: 2px; }
+  .cal-day-num { font-size: 11.5px; }
+  .cal-score { font-size: 9px; }
+  .cal-todo-item { font-size: 9.5px; }
+  .cal-dow { font-size: 10px; padding: 2px 0 6px; }
+  .cal-month-label { font-size: 13.5px; }
+
+  .ts-clock { font-size: 34px; margin: 4px 0 16px; }
+  .ts-adj-row { flex-wrap: wrap; gap: 10px 14px; }
+  .ts-adj-val { font-size: 19px; }
+  .ts-controls { flex-wrap: wrap; }
+  .ts-controls .btn { flex: 1 1 auto; }
+
+  .btn-row { flex-wrap: wrap; }
+  .btn-row .btn { flex: 1 1 auto; }
+  .btn-full, .sidebar-section .btn { width: 100%; }
+
+  .modal { padding: 18px; width: 92vw; max-height: 82vh; }
+  .modal-header h2, .modal .card-title { font-size: 13px; }
+
+  /* iOS Safari zooms the page in when a focused input's font-size is under 16px */
+  input[type="date"], input[type="number"], input[type="text"] { font-size: 16px; }
+
+  #toast { max-width: 88vw; white-space: normal; text-align: center; font-size: 12.5px; }
+}
 </style>
 </head>
 <body>
@@ -339,6 +406,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
       <label>Date</label>
       <input type="date" id="dateInput">
     </div>
+    <div class="table-scroll">
     <table class="task-table">
       <thead>
         <tr>
@@ -359,6 +427,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
         </tr>
       </tfoot>
     </table>
+    </div>
     <div class="btn-row">
       <button class="btn btn-ghost" onclick="addTaskRow()">+ Add Task</button>
       <button class="btn btn-primary" onclick="saveDay()">Save Day</button>
