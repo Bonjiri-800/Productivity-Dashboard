@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Productivity Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #f5f7fa;
+  --surface:   #ffffff;
+  --surface2:  #f0f2f5;
+  --border:    #dde1e8;
+  --text:      #1a1d23;
+  --muted:     #6b7280;
+  --accent:    #2563eb;
+  --accent-bg: #eff6ff;
+  --success:   #16a34a;
+  --success-bg:#f0fdf4;
+  --warn:      #d97706;
+  --warn-bg:   #fffbeb;
+  --danger:    #dc2626;
+  --danger-bg: #fef2f2;
+  --imp1: #9ca3af; --imp2: #3b82f6; --imp3: #0891b2;
+  --imp4: #d97706; --imp5: #dc2626;
+  --radius: 10px;
+  --font:      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Consolas, monospace;
+}
+
+/* ── Layout ───────────────────────────── */
+body {
+  font-family: var(--font);
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  grid-template-rows: auto 1fr;
+}
+
+header {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header h1 { font-size: 16px; font-weight: 700; }
+.header-date { font-size: 13px; color: var(--muted); }
+
+main {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+aside {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+/* ── Cards ────────────────────────────── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.card-title { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+
+/* ── Inputs ───────────────────────────── */
+input[type="date"], input[type="number"], input[type="text"] {
+  font-family: var(--font); font-size: 13px;
+  padding: 7px 10px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 7px;
+  color: var(--text); outline: none;
+}
+input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+
+.date-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.date-row label { font-size: 12px; font-weight: 600; color: var(--muted); }
+
+/* ── Task table ───────────────────────── */
+.task-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.task-table th {
+  padding: 6px 8px; text-align: left; font-size: 11px; font-weight: 600;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.task-table th:nth-child(1) { width: 150px; }
+.task-table th:nth-child(3) { width: 130px; }
+.task-table th:nth-child(4) { width: 90px; }
+.task-table th:nth-child(5) { width: 80px; }
+.task-table th:nth-child(6) { width: 32px; }
+.task-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.task-table tbody tr:last-child td { border-bottom: none; }
+.task-table input[type="number"], .task-table input[type="text"] { width: 100%; }
+
+/* ── Importance pip selector ──────────── */
+.imp-selector { display: flex; gap: 4px; align-items: center; }
+.imp-pip {
+  width: 24px; height: 24px; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--surface2);
+  cursor: pointer; font-size: 11px; font-weight: 600; color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .1s; user-select: none; flex-shrink: 0;
+}
+.imp-pip:hover { transform: scale(1.1); }
+.imp-pip.active-1 { background: rgba(156,163,175,.2); border-color: var(--imp1); color: var(--imp1); }
+.imp-pip.active-2 { background: rgba(59,130,246,.15); border-color: var(--imp2); color: var(--imp2); }
+.imp-pip.active-3 { background: rgba(8,145,178,.15);  border-color: var(--imp3); color: var(--imp3); }
+.imp-pip.active-4 { background: rgba(217,119,6,.15);  border-color: var(--imp4); color: var(--imp4); }
+.imp-pip.active-5 { background: rgba(220,38,38,.15);  border-color: var(--imp5); color: var(--imp5); }
+.imp-label { font-size: 11px; color: var(--muted); margin-left: 4px; min-width: 44px; }
+
+/* ── Progress cell ────────────────────── */
+.progress-wrap { display: flex; align-items: center; gap: 7px; }
+.progress-bar-bg { flex: 1; height: 5px; background: var(--surface2); border-radius: 99px; overflow: hidden; border: 1px solid var(--border); }
+.progress-bar-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width .25s; }
+.progress-input { width: 54px !important; }
+
+/* ── Production badge ─────────────────── */
+.prod-badge {
+  display: inline-block; font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  padding: 2px 8px; border-radius: 5px; min-width: 48px; text-align: center;
+  background: var(--accent-bg); color: var(--accent);
+}
+
+/* ── Buttons ──────────────────────────── */
+.btn-delete { background: transparent; border: none; cursor: pointer; color: var(--muted); font-size: 14px; padding: 3px 5px; border-radius: 5px; }
+.btn-delete:hover { color: var(--danger); background: var(--danger-bg); }
+.btn-row { display: flex; gap: 8px; margin-top: 14px; }
+.btn { font-family: var(--font); font-size: 13px; font-weight: 600; padding: 8px 16px; border: none; border-radius: 7px; cursor: pointer; transition: opacity .15s, transform .1s; }
+.btn:active { transform: scale(.97); }
+.btn:hover  { opacity: .85; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-ghost   { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-full    { width: 100%; text-align: center; }
+.total-row td { border-top: 1px solid var(--border); border-bottom: none !important; padding-top: 10px !important; font-weight: 600; }
+
+/* ── Toast ────────────────────────────── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--text); border-radius: 8px; padding: 9px 20px;
+  font-size: 13px; color: var(--bg); opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s; z-index: 999; white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Charts ───────────────────────────── */
+.chart-controls { display: flex; gap: 6px; margin-bottom: 14px; }
+.btn-range {
+  font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer;
+}
+.btn-range.active, .btn-range:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.chart-wrap { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+#reflection {
+  font-size: 13px; padding: 12px 14px; background: var(--accent-bg);
+  border-radius: 8px; border-left: 3px solid var(--accent);
+  color: var(--text); margin-top: 14px; line-height: 1.5;
+}
+
+/* ── Stats ────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.stat-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; text-align: center; }
+.stat-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+.stat-value { font-family: var(--font-mono); font-size: 20px; font-weight: 600; }
+
+/* ── Sidebar ──────────────────────────── */
+.sidebar-section { display: flex; flex-direction: column; gap: 8px; }
+.sidebar-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.sidebar-section input[type="number"] { width: 100%; }
+.imp-legend { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.imp-legend-row { display: flex; align-items: center; gap: 8px; }
+.imp-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.formula-box {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px; font-family: var(--font-mono); font-size: 11px; line-height: 1.8; color: var(--muted);
+}
+.formula-box .hl { color: var(--accent); font-weight: 600; }
+.formula-box .ex { font-size: 10px; }
+.divider { height: 1px; background: var(--border); }
+
+/* ── Calendar ─────────────────────────── */
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-month-label { font-size: 15px; font-weight: 700; }
+.cal-nav {
+  width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.cal-nav:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; }
+.cal-dow { font-size: 11px; font-weight: 600; color: var(--muted); text-align: center; padding: 3px 0 8px; }
+.cal-day {
+  min-height: 80px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 7px 8px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 3px; transition: border-color .12s;
+}
+.cal-day:hover { border-color: var(--accent); }
+.cal-day.today { border-color: var(--accent); background: var(--accent-bg); }
+.cal-day.other-month { opacity: .25; pointer-events: none; }
+.cal-day-num { font-size: 13px; font-weight: 600; line-height: 1; }
+.cal-score { font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--success); }
+.cal-todo-item { font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 4px; }
+.cal-todo-item.done-preview { color: var(--muted); text-decoration: line-through; }
+.cal-todo-check { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.cal-todo-check.checked   { background: var(--success); }
+.cal-todo-check.unchecked { border: 1.5px solid var(--muted); }
+.cal-more { font-size: 10px; color: var(--muted); }
+
+/* ── Todo modal ───────────────────────── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; width: 400px; max-width: 94vw; max-height: 75vh;
+  display: flex; flex-direction: column; gap: 14px; box-shadow: 0 16px 48px rgba(0,0,0,.2);
+}
+.modal-header { display: flex; align-items: flex-start; justify-content: space-between; }
+.modal-date { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.modal-close { background: transparent; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 2px 5px; border-radius: 5px; }
+.modal-close:hover { color: var(--danger); background: var(--danger-bg); }
+.todo-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
+.todo-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; font-size: 13px; }
+.todo-check {
+  width: 15px; height: 15px; border-radius: 4px; border: 1.5px solid var(--muted);
+  background: transparent; cursor: pointer; flex-shrink: 0;
+  appearance: none; -webkit-appearance: none;
+}
+.todo-check:checked {
+  background: var(--success); border-color: var(--success);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 10 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 4l3 3 5-6' stroke='white' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: center;
+}
+.todo-text { flex: 1; color: var(--text); background: transparent; border: none; outline: none; font-family: var(--font); font-size: 13px; }
+.todo-text.done { text-decoration: line-through; color: var(--muted); }
+.todo-del { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 2px 4px; border-radius: 4px; }
+.todo-del:hover { color: var(--danger); }
+.todo-add-row { display: flex; gap: 7px; }
+.todo-add-row input { flex: 1; }
+.empty-msg { font-size: 12px; color: var(--muted); padding: 6px 2px; }
+
+/* ── Timer / Stopwatch ────────────────── */
+.ts-tabs {
+  display: flex; gap: 0; margin-bottom: 20px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 3px; width: fit-content;
+}
+.ts-tab {
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  padding: 6px 24px; border: none; border-radius: 6px;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.ts-tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+.ts-panel { display: none; }
+.ts-panel.active { display: block; }
+
+/* Big clock */
+.ts-clock {
+  font-family: var(--font-mono); font-size: 54px; font-weight: 600;
+  text-align: center; letter-spacing: .04em; color: var(--text);
+  margin: 4px 0 20px; line-height: 1; transition: color .3s;
+}
+.ts-clock.running  { color: var(--accent); }
+.ts-clock.warning  { color: var(--warn); }
+.ts-clock.finished { color: var(--danger); }
+
+/* Adjuster row for timer */
+.ts-adj-row {
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: 8px; margin-bottom: 20px;
+}
+.ts-adj-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.ts-adj-label { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ts-adj-val { font-family: var(--font-mono); font-size: 22px; font-weight: 600; min-width: 48px; text-align: center; }
+.ts-adj-btns { display: flex; gap: 4px; }
+.ts-adj-btn {
+  width: 36px; height: 28px; border: 1px solid var(--border);
+  border-radius: 5px; background: var(--surface2); color: var(--text);
+  font-size: 14px; font-weight: 700; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+}
+.ts-adj-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.ts-sep { font-family: var(--font-mono); font-size: 28px; color: var(--border); padding-bottom: 4px; }
+
+/* Control buttons */
+.ts-controls { display: flex; justify-content: center; gap: 8px; }
+
+/* Finished notice */
+.ts-finished {
+  display: none; text-align: center; margin-top: 14px;
+  padding: 10px; background: var(--danger-bg);
+  border: 1px solid var(--danger); border-radius: 8px;
+  font-size: 13px; font-weight: 600; color: var(--danger);
+}
+.ts-finished.show { display: block; }
+
+/* Lap list */
+.lap-list { margin-top: 16px; max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.lap-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 10px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+}
+.lap-item .lap-n { color: var(--text); font-weight: 600; }
+.lap-item .lap-s { color: var(--accent); }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Productivity Dashboard</h1>
+  <span class="header-date" id="headerDate"></span>
+</header>
+
+<main>
+
+  <!-- Task Entry -->
+  <div class="card">
+    <div class="card-title">Task Entry</div>
+    <div class="date-row">
+      <label>Date</label>
+      <input type="date" id="dateInput">
+    </div>
+    <table class="task-table">
+      <thead>
+        <tr>
+          <th>Importance (1–5)</th>
+          <th>Task Name</th>
+          <th>Progress (%)</th>
+          <th>Minutes</th>
+          <th>Production</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="taskBody"></tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="4" style="text-align:right;font-size:11px;color:var(--muted);letter-spacing:.05em">DAY TOTAL</td>
+          <td><span class="prod-badge" id="dayTotal">0.00</span></td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="addTaskRow()">+ Add Task</button>
+      <button class="btn btn-primary" onclick="saveDay()">Save Day</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="card">
+    <div class="card-title">Summary</div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-label">Avg Score</div><div class="stat-value" id="stat-avg">—</div></div>
+      <div class="stat-box"><div class="stat-label">Peak</div><div class="stat-value" id="stat-max">—</div></div>
+      <div class="stat-box"><div class="stat-label">Median</div><div class="stat-value" id="stat-med">—</div></div>
+      <div class="stat-box"><div class="stat-label">Days Logged</div><div class="stat-value" id="stat-days">—</div></div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="card">
+    <div class="card-title">Trends</div>
+    <div class="chart-controls">
+      <button class="btn-range active" onclick="setRange('all',this)">All</button>
+      <button class="btn-range" onclick="setRange(7,this)">7D</button>
+      <button class="btn-range" onclick="setRange(30,this)">30D</button>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-wrap"><canvas id="scoreChart" height="180"></canvas></div>
+      <div class="chart-wrap"><canvas id="prodChart"  height="180"></canvas></div>
+    </div>
+    <div id="reflection">No data yet — log your first day above.</div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="card">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calShift(-1)">&#8592;</button>
+      <span class="cal-month-label" id="calMonthLabel"></span>
+      <button class="cal-nav" onclick="calShift(1)">&#8594;</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+
+  <!-- Timer / Stopwatch -->
+  <div class="card">
+    <div class="card-title">Timer &amp; Stopwatch</div>
+
+    <div class="ts-tabs">
+      <button class="ts-tab active" id="tabTimer" onclick="switchMode('timer')">Timer</button>
+      <button class="ts-tab"        id="tabSw"    onclick="switchMode('sw')">Stopwatch</button>
+    </div>
+
+    <!-- Timer -->
+    <div class="ts-panel active" id="timerPanel">
+      <div class="ts-clock" id="timerClock">0:00:00</div>
+
+      <div class="ts-adj-row" id="timerAdjRow">
+        <div class="ts-adj-col">
+          <div class="ts-adj-label">Hours</div>
+          <div class="ts-adj-btns">
+            <button class="ts-adj-btn" onclick="tAdj('h',-1)">−</button>
+            <button class="ts-adj-btn" onclick="tAdj('h',+1)">+</button>
+          </div>
+          <div class="ts-adj-val" id="tH">0</div>
+        </div>
+        <div class="ts-sep">:</div>
+        <div class="ts-adj-col">
+          <div class="ts-adj-label">Minutes</div>
+          <div class="ts-adj-btns">
+            <button class="ts-adj-btn" onclick="tAdj('m',-1)">−</button>
+            <button class="ts-adj-btn" onclick="tAdj('m',+1)">+</button>
+          </div>
+          <div class="ts-adj-val" id="tM">00</div>
+        </div>
+        <div class="ts-sep">:</div>
+        <div class="ts-adj-col">
+          <div class="ts-adj-label">Seconds <span style="font-weight:400;text-transform:none">(×10)</span></div>
+          <div class="ts-adj-btns">
+            <button class="ts-adj-btn" onclick="tAdj('s',-1)">−</button>
+            <button class="ts-adj-btn" onclick="tAdj('s',+1)">+</button>
+          </div>
+          <div class="ts-adj-val" id="tS">00</div>
+        </div>
+      </div>
+
+      <div class="ts-controls">
+        <button class="btn btn-primary" id="tStartBtn" onclick="tStart()">Start</button>
+        <button class="btn btn-ghost"   id="tPauseBtn" onclick="tPause()" style="display:none">Pause</button>
+        <button class="btn btn-ghost"   onclick="tReset()">Reset</button>
+      </div>
+
+      <div class="ts-finished" id="tFinished">⏰ Time's up!</div>
+    </div>
+
+    <!-- Stopwatch -->
+    <div class="ts-panel" id="swPanel">
+      <div class="ts-clock" id="swClock">0:00:00.0</div>
+
+      <div class="ts-controls">
+        <button class="btn btn-primary" id="swStartBtn" onclick="swStart()">Start</button>
+        <button class="btn btn-ghost"   id="swPauseBtn" onclick="swPause()" style="display:none">Pause</button>
+        <button class="btn btn-ghost"   id="swLapBtn"   onclick="swLap()" disabled>Lap</button>
+        <button class="btn btn-ghost"   onclick="swReset()">Reset</button>
+      </div>
+
+      <div class="lap-list" id="lapList"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Sidebar -->
+<aside>
+  <div class="sidebar-label">Settings</div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Goal Score</div>
+    <input type="number" id="goalInput" step="0.1" min="0" placeholder="e.g. 2.0">
+    <button class="btn btn-primary btn-full" onclick="saveGoal()">Set Goal</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Importance Levels</div>
+    <div class="imp-legend">
+      <div class="imp-legend-row"><div class="imp-dot" style="background:var(--imp5)"></div><span style="color:var(--imp5)">5 — Critical</span></div>
+      <div class="imp-legend-row"><div class="imp-dot" style="background:var(--imp4)"></div><span style="color:var(--imp4)">4 — High</span></div>
+      <div class="imp-legend-row"><div class="imp-dot" style="background:var(--imp3)"></div><span style="color:var(--imp3)">3 — Normal</span></div>
+      <div class="imp-legend-row"><div class="imp-dot" style="background:var(--imp2)"></div><span style="color:var(--imp2)">2 — Low</span></div>
+      <div class="imp-legend-row"><div class="imp-dot" style="background:var(--imp1)"></div><span style="color:var(--imp1)">1 — Optional</span></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Formula</div>
+    <div class="formula-box">
+      <div><span class="hl">Task Production</span> =</div>
+      <div style="padding-left:8px">importance × (progress ÷ 100)</div>
+      <br>
+      <div><span class="hl">Day Production</span> =</div>
+      <div style="padding-left:8px">Σ all task productions</div>
+      <br>
+      <div><span class="hl">Score</span> =</div>
+      <div style="padding-left:8px">Day Production ÷ hours</div>
+      <br>
+      <div class="ex">e.g. importance 5, 40%<br>→ 5 × 0.4 = <span class="hl">2.00</span></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">Data</div>
+    <button class="btn btn-ghost btn-full" onclick="exportData()">Export JSON</button>
+    <button class="btn btn-ghost btn-full" onclick="importData()">Import JSON</button>
+    <input type="file" id="importFile" accept=".json,application/json" style="display:none"
+      onchange="handleImportFile(this)">
+    <button class="btn btn-ghost btn-full" style="color:var(--danger)" onclick="clearData()">Clear All Data</button>
+  </div>
+</aside>
+
+<div id="toast"></div>
+
+<!-- Todo modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="card-title" style="margin-bottom:3px">To Do List</div>
+        <div class="modal-date" id="modalDate"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="todo-list" id="todoList"></div>
+    <div class="todo-add-row">
+      <input type="text" id="todoInput" placeholder="Add a task…"
+        onkeydown="if(event.key==='Enter')addTodoItem()">
+      <button class="btn btn-primary" onclick="addTodoItem()">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── Storage ───────────────────────────────────────────────
+const getData  = () => JSON.parse(localStorage.getItem('pdData')  || '{}');
+const setData  = o  => localStorage.setItem('pdData',  JSON.stringify(o));
+const getTodos = () => JSON.parse(localStorage.getItem('pdTodo')  || '{}');
+const setTodos = o  => localStorage.setItem('pdTodo',  JSON.stringify(o));
+const getGoal  = () => parseFloat(localStorage.getItem('pdGoal')) || 0;
+const todayStr = () => new Date().toLocaleDateString('sv-SE');
+
+function median(arr) {
+  const s = [...arr].sort((a,b)=>a-b), m = Math.floor(s.length/2);
+  return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(()=>el.classList.remove('show'), 2400);
+}
+
+// ── Importance ────────────────────────────────────────────
+const IMP_COLOR = {1:'var(--imp1)',2:'var(--imp2)',3:'var(--imp3)',4:'var(--imp4)',5:'var(--imp5)'};
+const IMP_LABEL = {1:'Optional',2:'Low',3:'Normal',4:'High',5:'Critical'};
+
+function buildPips(container, value) {
+  container.innerHTML = '';
+  container.dataset.value = value;
+  for (let i = 1; i <= 5; i++) {
+    const pip = document.createElement('button');
+    pip.type = 'button';
+    pip.className = 'imp-pip' + (i <= value ? ' active-'+value : '');
+    pip.textContent = i;
+    pip.addEventListener('click', () => { buildPips(container, i); refreshRow(container.closest('tr')); });
+    container.appendChild(pip);
+  }
+  const lbl = document.createElement('span');
+  lbl.className = 'imp-label';
+  lbl.style.color = IMP_COLOR[value];
+  lbl.textContent = IMP_LABEL[value];
+  container.appendChild(lbl);
+}
+
+const getImp = row => parseInt(row.querySelector('.imp-selector').dataset.value) || 1;
+
+function rowProd(row) {
+  const imp  = getImp(row);
+  const prog = Math.min(100, Math.max(0, parseFloat(row.querySelector('.progress-input').value)||0));
+  return +(imp * (prog/100)).toFixed(2);
+}
+
+function refreshRow(row) {
+  const pct  = Math.min(100, Math.max(0, parseFloat(row.querySelector('.progress-input').value)||0));
+  const fill = row.querySelector('.progress-bar-fill');
+  fill.style.width = pct+'%';
+  fill.style.background = pct>=80 ? 'var(--success)' : pct>=50 ? 'var(--accent)' : 'var(--muted)';
+  const prod = rowProd(row), imp = getImp(row), ratio = imp>0 ? prod/imp : 0;
+  const badge = row.querySelector('.prod-badge');
+  badge.textContent = prod.toFixed(2);
+  if      (ratio>=0.8) { badge.style.background='var(--success-bg)'; badge.style.color='var(--success)'; }
+  else if (ratio>=0.4) { badge.style.background='var(--accent-bg)';  badge.style.color='var(--accent)'; }
+  else                 { badge.style.background='var(--surface2)';   badge.style.color='var(--muted)'; }
+  refreshDayTotal();
+}
+
+function refreshDayTotal() {
+  const total = [...document.querySelectorAll('#taskBody tr')].reduce((s,r)=>s+rowProd(r),0);
+  document.getElementById('dayTotal').textContent = total.toFixed(2);
+}
+
+function addTaskRow(data={}) {
+  const imp  = data.importance ?? 3;
+  const name = data.name ?? '';
+  const prog = data.progress ?? '';
+  const min  = data.minutes  ?? '';
+  const tr   = document.createElement('tr');
+  tr.innerHTML = `
+    <td><div class="imp-selector"></div></td>
+    <td><input type="text" class="name-input" placeholder="Task name" value="${name}"></td>
+    <td>
+      <div class="progress-wrap">
+        <div class="progress-bar-bg"><div class="progress-bar-fill"></div></div>
+        <input type="number" class="progress-input" min="0" max="100"
+          value="${prog}" placeholder="0" oninput="refreshRow(this.closest('tr'))">
+      </div>
+    </td>
+    <td><input type="number" class="minutes-input" min="0" value="${min}" placeholder="0"></td>
+    <td><span class="prod-badge">0.00</span></td>
+    <td><button class="btn-delete" onclick="this.closest('tr').remove();refreshDayTotal()">✕</button></td>
+  `;
+  document.getElementById('taskBody').appendChild(tr);
+  buildPips(tr.querySelector('.imp-selector'), imp);
+  refreshRow(tr);
+}
+
+function collectRows() {
+  return [...document.querySelectorAll('#taskBody tr')].map(r=>({
+    importance: getImp(r),
+    name:       r.querySelector('.name-input').value.trim(),
+    progress:   Math.min(100,Math.max(0,parseFloat(r.querySelector('.progress-input').value)||0)),
+    minutes:    Math.max(0,parseFloat(r.querySelector('.minutes-input').value)||0),
+  }));
+}
+
+function calcScores(tasks) {
+  let prod=0, hrs=0;
+  tasks.forEach(({importance,progress,minutes})=>{
+    prod += importance*(progress/100);
+    hrs  += minutes/60;
+  });
+  return { production:+prod.toFixed(2), score: hrs>0 ? +(prod/hrs).toFixed(2) : 0 };
+}
+
+function saveDay() {
+  const date = document.getElementById('dateInput').value;
+  if (!date) { toast('Please select a date.'); return; }
+  const tasks = collectRows();
+  if (!tasks.length) { toast('Add at least one task.'); return; }
+  const data = getData();
+  if (data[date] && !confirm(`Overwrite data for ${date}?`)) return;
+  const {score, production} = calcScores(tasks);
+  data[date] = {score, production, tasks};
+  setData(data);
+  toast(`Saved ${date}  —  Score: ${score}`);
+  updateChart(); renderCalendar();
+}
+
+function loadDay(date) {
+  document.getElementById('taskBody').innerHTML = '';
+  const day = getData()[date];
+  if (day?.tasks?.length) day.tasks.forEach(t=>addTaskRow(t));
+  else addTaskRow();
+  refreshDayTotal();
+}
+
+function saveGoal() {
+  const val = parseFloat(document.getElementById('goalInput').value);
+  if (isNaN(val)||val<0) { toast('Enter a valid goal.'); return; }
+  localStorage.setItem('pdGoal', val);
+  toast(`Goal set to ${val}`); updateChart();
+}
+
+// ── Charts ────────────────────────────────────────────────
+let _sc=null, _pc=null, currentRange='all';
+
+function setRange(range, btn) {
+  currentRange=range;
+  document.querySelectorAll('.btn-range').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); updateChart();
+}
+
+function dLine(label,data,color) {
+  return {label,data,borderColor:color,backgroundColor:'transparent',
+          borderDash:[5,4],borderWidth:1.5,pointRadius:0,tension:0};
+}
+
+function updateChart() {
+  const raw=getData(), all=Object.keys(raw).sort();
+  const dates = currentRange==='all' ? all : all.slice(-currentRange);
+  const tc='#374151', gc='rgba(0,0,0,.06)', bg='#f9fafb';
+
+  if (all.length) {
+    const sc=all.map(d=>raw[d].score), avg=sc.reduce((a,b)=>a+b,0)/sc.length;
+    document.getElementById('stat-avg').textContent  = avg.toFixed(2);
+    document.getElementById('stat-max').textContent  = Math.max(...sc).toFixed(2);
+    document.getElementById('stat-med').textContent  = median(sc).toFixed(2);
+    document.getElementById('stat-days').textContent = all.length;
+    updateReflection(sc, Math.max(...sc), avg);
+  }
+  if (!dates.length) return;
+
+  const sc=dates.map(d=>raw[d].score), pr=dates.map(d=>raw[d].production);
+  const goal=getGoal(), avg=sc.reduce((a,b)=>a+b,0)/sc.length;
+  const max=Math.max(...sc), min=Math.min(...sc), med=median(sc), rep=v=>dates.map(()=>v);
+  const so={x:{ticks:{color:tc,font:{size:11}},grid:{color:gc}},y:{beginAtZero:true,ticks:{color:tc,font:{size:11}},grid:{color:gc}}};
+  const lo={labels:{color:tc,font:{size:11},boxWidth:16}};
+
+  if (_sc) _sc.destroy();
+  if (_pc) _pc.destroy();
+
+  const sEl=document.getElementById('scoreChart'); sEl.style.background=bg;
+  _sc=new Chart(sEl,{type:'line',data:{labels:dates,datasets:[
+    {label:'Score',data:sc,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.08)',
+     borderWidth:2,pointRadius:3,tension:.35,fill:true},
+    ...(goal>0?[dLine('Goal',rep(goal),'#d97706')]:[]),
+    dLine('Avg',rep(avg),'#9ca3af'),dLine('Max',rep(max),'#16a34a'),
+    dLine('Min',rep(min),'#dc2626'),dLine('Median',rep(med),'#7c3aed'),
+  ]},options:{responsive:true,plugins:{legend:lo},scales:so}});
+
+  const pEl=document.getElementById('prodChart'); pEl.style.background=bg;
+  _pc=new Chart(pEl,{type:'bar',data:{labels:dates,datasets:[{
+    label:'Production',data:pr,
+    backgroundColor:pr.map(v=>v>=6?'rgba(22,163,74,.6)':v>=3?'rgba(37,99,235,.6)':'rgba(107,114,128,.5)'),
+    borderRadius:4,borderSkipped:false,
+  }]},options:{responsive:true,plugins:{legend:lo},scales:so}});
+}
+
+function updateReflection(scores, max, avg) {
+  const latest=scores[scores.length-1], goal=getGoal();
+  const el=document.getElementById('reflection');
+  if (scores.length<2)      { el.style.borderLeftColor='var(--accent)';  el.textContent=`First entry logged — score: ${latest}. Keep going!`; }
+  else if (latest===max)    { el.style.borderLeftColor='var(--warn)';    el.textContent=`🏆 Personal best over ${scores.length} days! Score: ${latest}`; }
+  else if (goal>0&&latest>=goal){ el.style.borderLeftColor='var(--success)'; el.textContent=`✅ Goal achieved today (${latest} ≥ ${goal})`; }
+  else if (latest>avg)      { el.style.borderLeftColor='var(--accent)';  el.textContent=`↑ Above average today — score: ${latest} (avg ${avg.toFixed(2)})`; }
+  else                      { el.style.borderLeftColor='var(--muted)';   el.textContent=`Today's score: ${latest} (avg ${avg.toFixed(2)})`; }
+}
+
+function exportData() {
+  const data=getData();
+  if (!Object.keys(data).length) { toast('No data to export.'); return; }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download=`productivity_${todayStr()}.json`; a.click(); toast('Exported!');
+}
+
+// ── Import JSON (counterpart to exportData) ───────────────
+// Accepts the same date-keyed format produced by exportData():
+//   { "YYYY-MM-DD": { score, production, tasks:[{importance,name,progress,minutes}] } }
+function importData() {
+  // Open the native file picker; the actual work happens in handleImportFile().
+  document.getElementById('importFile').click();
+}
+
+function handleImportFile(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onerror = () => { toast('Could not read file.'); input.value=''; };
+
+  reader.onload = e => {
+    // 1. Parse — reject anything that is not valid JSON.
+    let parsed;
+    try {
+      parsed = JSON.parse(e.target.result);
+    } catch (err) {
+      toast('Invalid JSON file.'); input.value=''; return;
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      toast('Unexpected file format.'); input.value=''; return;
+    }
+
+    // 2. Validate + normalise each day record. Scores are recomputed from
+    //    tasks via calcScores() so imported data stays internally consistent
+    //    even if the source file was hand-edited or produced by an old version.
+    const clean = {};
+    let valid = 0;
+    for (const [date, day] of Object.entries(parsed)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+      if (!day || typeof day !== 'object' || !Array.isArray(day.tasks)) continue;
+
+      const tasks = day.tasks.map(t => ({
+        importance: Math.min(5, Math.max(1, parseInt(t && t.importance, 10) || 1)),
+        name:       String((t && t.name) ?? '').trim(),
+        progress:   Math.min(100, Math.max(0, parseFloat(t && t.progress) || 0)),
+        minutes:    Math.max(0, parseFloat(t && t.minutes) || 0),
+      }));
+
+      const { score, production } = calcScores(tasks);
+      clean[date] = { score, production, tasks };
+      valid++;
+    }
+
+    if (!valid) { toast('No valid day records found.'); input.value=''; return; }
+
+    // 3. Merge into existing data (imported days win on conflict).
+    const existing = getData();
+    if (Object.keys(existing).length) {
+      const overlap = Object.keys(clean).filter(d => d in existing).length;
+      const msg = overlap
+        ? `Import ${valid} day(s)? ${overlap} existing day(s) will be overwritten.`
+        : `Import ${valid} day(s) and merge with your existing data?`;
+      if (!confirm(msg)) { input.value=''; return; }
+    }
+    const merged = { ...existing, ...clean };
+
+    // 4. Persist and refresh every view that reads pdData.
+    setData(merged);
+    loadDay(document.getElementById('dateInput').value);
+    updateChart();
+    renderCalendar();
+    toast(`Imported ${valid} day(s).`);
+
+    // Reset so selecting the same file again still fires onchange.
+    input.value = '';
+  };
+
+  reader.readAsText(file);
+}
+
+function clearData() {
+  if (!confirm('Delete ALL saved data?')) return;
+  localStorage.removeItem('pdData');
+  document.getElementById('taskBody').innerHTML='';
+  addTaskRow(); refreshDayTotal();
+  if (_sc) _sc.destroy(); if (_pc) _pc.destroy();
+  ['stat-avg','stat-max','stat-med','stat-days'].forEach(id=>document.getElementById(id).textContent='—');
+  document.getElementById('reflection').textContent='No data yet — log your first day above.';
+  renderCalendar(); toast('All data cleared.');
+}
+
+// ── Calendar ──────────────────────────────────────────────
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOWS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function calShift(dir) {
+  calMonth+=dir;
+  if (calMonth>11){calMonth=0;calYear++;} else if(calMonth<0){calMonth=11;calYear--;}
+  renderCalendar();
+}
+
+function renderCalendar() {
+  document.getElementById('calMonthLabel').textContent=`${MONTHS[calMonth]} ${calYear}`;
+  const grid=document.getElementById('calGrid'), todos=getTodos(), pd=getData(), today=todayStr();
+  grid.innerHTML=DOWS.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  const firstDow=new Date(calYear,calMonth,1).getDay();
+  const lastDay=new Date(calYear,calMonth+1,0).getDate();
+
+  for (let i=0;i<firstDow;i++) {
+    const b=document.createElement('div'); b.className='cal-day other-month'; grid.appendChild(b);
+  }
+
+  for (let d=1;d<=lastDay;d++) {
+    const iso=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cell=document.createElement('div');
+    cell.className='cal-day'+(iso===today?' today':'');
+
+    const num=document.createElement('div'); num.className='cal-day-num'; num.textContent=d; cell.appendChild(num);
+
+    if (pd[iso]) {
+      const sc=document.createElement('div'); sc.className='cal-score';
+      sc.textContent=`Score: ${pd[iso].score}`; cell.appendChild(sc);
+    }
+
+    (todos[iso]||[]).slice(0,3).forEach(item=>{
+      const row=document.createElement('div');
+      row.className='cal-todo-item'+(item.done?' done-preview':'');
+      const dot=document.createElement('div');
+      dot.className='cal-todo-check '+(item.done?'checked':'unchecked');
+      const txt=document.createElement('span'); txt.textContent=item.text;
+      row.append(dot,txt); cell.appendChild(row);
+    });
+
+    const extra=(todos[iso]||[]).length-3;
+    if (extra>0) { const m=document.createElement('div'); m.className='cal-more'; m.textContent=`+${extra} more`; cell.appendChild(m); }
+
+    cell.addEventListener('click',()=>openModal(iso));
+    grid.appendChild(cell);
+  }
+}
+
+// ── Todo modal ────────────────────────────────────────────
+let modalDate='';
+function openModal(iso) {
+  modalDate=iso;
+  const d=new Date(iso+'T00:00:00');
+  document.getElementById('modalDate').textContent=
+    d.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  renderTodoList();
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('todoInput').focus(),60);
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); renderCalendar(); }
+function closeModalOutside(e) { if(e.target===document.getElementById('modalOverlay'))closeModal(); }
+
+function renderTodoList() {
+  const items=getTodos()[modalDate]||[], list=document.getElementById('todoList');
+  list.innerHTML='';
+  if (!items.length) {
+    const m=document.createElement('div'); m.className='empty-msg';
+    m.textContent='No tasks yet — add one below.'; list.appendChild(m); return;
+  }
+  items.forEach((item,idx)=>{
+    const row=document.createElement('div'); row.className='todo-item';
+    const chk=document.createElement('input'); chk.type='checkbox'; chk.className='todo-check'; chk.checked=item.done;
+    chk.addEventListener('change',()=>toggleTodo(idx,chk.checked));
+    const txt=document.createElement('span'); txt.className='todo-text'+(item.done?' done':''); txt.textContent=item.text;
+    const del=document.createElement('button'); del.className='todo-del'; del.textContent='✕';
+    del.addEventListener('click',()=>deleteTodo(idx));
+    row.append(chk,txt,del); list.appendChild(row);
+  });
+}
+function addTodoItem() {
+  const input=document.getElementById('todoInput'), text=input.value.trim();
+  if (!text) return;
+  const todos=getTodos(); if (!todos[modalDate]) todos[modalDate]=[];
+  todos[modalDate].push({text,done:false}); setTodos(todos);
+  input.value=''; renderTodoList(); renderCalendar();
+}
+function toggleTodo(idx,done) {
+  const todos=getTodos();
+  if (todos[modalDate]?.[idx]!==undefined) { todos[modalDate][idx].done=done; setTodos(todos); renderTodoList(); renderCalendar(); }
+}
+function deleteTodo(idx) {
+  const todos=getTodos();
+  if (todos[modalDate]) {
+    todos[modalDate].splice(idx,1);
+    if (!todos[modalDate].length) delete todos[modalDate];
+    setTodos(todos); renderTodoList(); renderCalendar();
+  }
+}
+
+// ── Tab switch ────────────────────────────────────────────
+function switchMode(mode) {
+  document.getElementById('tabTimer').classList.toggle('active', mode==='timer');
+  document.getElementById('tabSw').classList.toggle('active',    mode==='sw');
+  document.getElementById('timerPanel').classList.toggle('active', mode==='timer');
+  document.getElementById('swPanel').classList.toggle('active',    mode==='sw');
+}
+
+// ════════════════════════════════════════════════════
+// TIMER
+// ════════════════════════════════════════════════════
+// Hours: step 1 (0–3)  |  Minutes: step 1 (0–59)  |  Seconds: step 10 (0–50)
+// Max total: 3 hours (10800 s)
+
+let tH=0, tM=0, tS=0;       // set values
+let tRemain=0;                // seconds remaining
+let tRunning=false;
+let tInterval=null;
+
+function p2(n){ return String(Math.floor(n)).padStart(2,'0'); }
+
+function tAdj(unit, dir) {
+  if (tRunning) return;
+  if (unit==='h') tH=Math.min(3,  Math.max(0,  tH+dir));
+  if (unit==='m') tM=Math.min(59, Math.max(0,  tM+dir));
+  if (unit==='s') tS=Math.min(50, Math.max(0,  tS+dir*10));
+  // Cap at 3 hours total
+  if (tH*3600+tM*60+tS > 10800) { tH=3; tM=0; tS=0; }
+  document.getElementById('tH').textContent = tH;
+  document.getElementById('tM').textContent = p2(tM);
+  document.getElementById('tS').textContent = p2(tS);
+  tRenderClock(tH*3600+tM*60+tS);
+}
+
+function tRenderClock(secs) {
+  const h=Math.floor(secs/3600), m=Math.floor((secs%3600)/60), s=secs%60;
+  document.getElementById('timerClock').textContent=`${h}:${p2(m)}:${p2(s)}`;
+}
+
+function tSetClockStyle(cls) {
+  document.getElementById('timerClock').className='ts-clock'+(cls?' '+cls:'');
+}
+
+function tStart() {
+  const total=tH*3600+tM*60+tS;
+  if (total<10) { toast('Set at least 10 seconds.'); return; }
+  tRemain=total; tRunning=true;
+
+  document.getElementById('timerAdjRow').style.display='none';
+  document.getElementById('tStartBtn').style.display='none';
+  document.getElementById('tPauseBtn').style.display='';
+  document.getElementById('tFinished').classList.remove('show');
+  tSetClockStyle('running');
+
+  tInterval=setInterval(()=>{
+    tRemain--;
+    tRenderClock(tRemain);
+    // Colour shift
+    if      (tRemain<=10) tSetClockStyle('finished');
+    else if (tRemain<=30) tSetClockStyle('warning');
+    else                  tSetClockStyle('running');
+
+    if (tRemain<=0) {
+      clearInterval(tInterval); tRunning=false;
+      document.getElementById('tPauseBtn').style.display='none';
+      document.getElementById('tStartBtn').style.display='';
+      document.getElementById('tStartBtn').textContent='Restart';
+      document.getElementById('tStartBtn').onclick=tRestart;
+      document.getElementById('timerAdjRow').style.display='';
+      document.getElementById('tFinished').classList.add('show');
+      tBeep();
+    }
+  }, 1000);
+}
+
+function tPause() {
+  if (!tRunning) return;
+  clearInterval(tInterval); tRunning=false;
+  document.getElementById('tPauseBtn').style.display='none';
+  document.getElementById('tStartBtn').style.display='';
+  document.getElementById('tStartBtn').textContent='Resume';
+  document.getElementById('tStartBtn').onclick=tResume;
+  tSetClockStyle('');
+}
+
+function tResume() {
+  tRunning=true;
+  document.getElementById('tStartBtn').style.display='none';
+  document.getElementById('tPauseBtn').style.display='';
+  tSetClockStyle('running');
+
+  tInterval=setInterval(()=>{
+    tRemain--;
+    tRenderClock(tRemain);
+    if      (tRemain<=10) tSetClockStyle('finished');
+    else if (tRemain<=30) tSetClockStyle('warning');
+    else                  tSetClockStyle('running');
+
+    if (tRemain<=0) {
+      clearInterval(tInterval); tRunning=false;
+      document.getElementById('tPauseBtn').style.display='none';
+      document.getElementById('tStartBtn').style.display='';
+      document.getElementById('tStartBtn').textContent='Restart';
+      document.getElementById('tStartBtn').onclick=tRestart;
+      document.getElementById('timerAdjRow').style.display='';
+      document.getElementById('tFinished').classList.add('show');
+      tBeep();
+    }
+  }, 1000);
+}
+
+function tRestart() {
+  // Same settings, restart from top
+  document.getElementById('tStartBtn').textContent='Start';
+  document.getElementById('tStartBtn').onclick=tStart;
+  tStart();
+}
+
+function tReset() {
+  clearInterval(tInterval); tRunning=false; tRemain=0;
+  tH=0; tM=0; tS=0;
+  document.getElementById('tH').textContent='0';
+  document.getElementById('tM').textContent='00';
+  document.getElementById('tS').textContent='00';
+  document.getElementById('timerAdjRow').style.display='';
+  document.getElementById('tStartBtn').style.display='';
+  document.getElementById('tStartBtn').textContent='Start';
+  document.getElementById('tStartBtn').onclick=tStart;
+  document.getElementById('tPauseBtn').style.display='none';
+  document.getElementById('tFinished').classList.remove('show');
+  tSetClockStyle(''); tRenderClock(0);
+}
+
+function tBeep() {
+  try {
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [0,.35,.7].forEach(t=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=880;
+      g.gain.setValueAtTime(0.4, ctx.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+t+0.25);
+      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.3);
+    });
+  } catch(e){}
+}
+
+// ════════════════════════════════════════════════════
+// STOPWATCH  — uses requestAnimationFrame for accuracy
+// ════════════════════════════════════════════════════
+let swElapsed=0;      // total ms accumulated
+let swOrigin=null;    // performance.now() when last (re)started
+let swRunning=false;
+let swRaf=null;
+let swLaps=[];
+let swLapBase=0;      // elapsed at last lap tap
+
+function swMs() { return swRunning ? swElapsed+(performance.now()-swOrigin) : swElapsed; }
+
+function swRenderClock() {
+  const ms=swMs();
+  const h=Math.floor(ms/3600000);
+  const m=Math.floor((ms%3600000)/60000);
+  const s=Math.floor((ms%60000)/1000);
+  const t=Math.floor((ms%1000)/100);
+  document.getElementById('swClock').textContent=`${h}:${p2(m)}:${p2(s)}.${t}`;
+  if (swRunning) swRaf=requestAnimationFrame(swRenderClock);
+}
+
+function swStart() {
+  if (swRunning) return;
+  swOrigin=performance.now();
+  swRunning=true;
+  document.getElementById('swStartBtn').style.display='none';
+  document.getElementById('swPauseBtn').style.display='';
+  document.getElementById('swLapBtn').disabled=false;
+  document.getElementById('swClock').className='ts-clock running';
+  swRenderClock();
+}
+
+function swPause() {
+  if (!swRunning) return;
+  swElapsed+=performance.now()-swOrigin;
+  cancelAnimationFrame(swRaf); swRunning=false;
+  document.getElementById('swPauseBtn').style.display='none';
+  document.getElementById('swStartBtn').style.display='';
+  document.getElementById('swStartBtn').textContent='Resume';
+  document.getElementById('swClock').className='ts-clock';
+  swRenderClock(); // final render at exact elapsed
+}
+
+function swLap() {
+  if (!swRunning) return;
+  const total=swMs(), split=total-swLapBase;
+  swLapBase=total;
+  swLaps.push({total,split});
+  swRenderLaps();
+}
+
+function swReset() {
+  cancelAnimationFrame(swRaf); swRunning=false;
+  swElapsed=0; swOrigin=null; swLaps=[]; swLapBase=0;
+  document.getElementById('swClock').textContent='0:00:00.0';
+  document.getElementById('swClock').className='ts-clock';
+  document.getElementById('swStartBtn').style.display='';
+  document.getElementById('swStartBtn').textContent='Start';
+  document.getElementById('swPauseBtn').style.display='none';
+  document.getElementById('swLapBtn').disabled=true;
+  document.getElementById('lapList').innerHTML='';
+}
+
+function swFmt(ms) {
+  const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), t=Math.floor((ms%1000)/100);
+  return `${p2(m)}:${p2(s)}.${t}`;
+}
+
+function swRenderLaps() {
+  const list=document.getElementById('lapList');
+  list.innerHTML='';
+  [...swLaps].reverse().forEach((lap,ri)=>{
+    const n=swLaps.length-ri;
+    const el=document.createElement('div'); el.className='lap-item';
+    el.innerHTML=`<span class="lap-n">Lap ${n}</span><span class="lap-s">+${swFmt(lap.split)}</span><span>${swFmt(lap.total)}</span>`;
+    list.appendChild(el);
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────
+(function init() {
+  document.getElementById('headerDate').textContent =
+    new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const di=document.getElementById('dateInput');
+  di.value=todayStr();
+  di.addEventListener('change',()=>loadDay(di.value));
+
+  const goal=getGoal();
+  if (goal) document.getElementById('goalInput').value=goal;
+
+  loadDay(todayStr());
+  updateChart();
+  renderCalendar();
+})();
+</script>
+</body>
+</html>
