@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -52,6 +52,9 @@ header {
 }
 header h1 { font-size: 16px; font-weight: 700; }
 .header-date { font-size: 13px; color: var(--muted); }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.user-email { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
 
 main {
   padding: 24px 28px;
@@ -71,16 +74,19 @@ aside {
   overflow-y: auto;
 }
 
+.hidden { display: none !important; }
+
 /* ── Cards ────────────────────────────── */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
 .card-title { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
 
 /* ── Inputs ───────────────────────────── */
-input[type="date"], input[type="number"], input[type="text"] {
+input[type="date"], input[type="number"], input[type="text"], input[type="email"], input[type="password"] {
   font-family: var(--font); font-size: 13px;
   padding: 7px 10px; background: var(--surface2);
   border: 1px solid var(--border); border-radius: 7px;
   color: var(--text); outline: none;
+  width: 100%;
 }
 input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
 
@@ -140,9 +146,11 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 .btn { font-family: var(--font); font-size: 13px; font-weight: 600; padding: 8px 16px; border: none; border-radius: 7px; cursor: pointer; transition: opacity .15s, transform .1s; }
 .btn:active { transform: scale(.97); }
 .btn:hover  { opacity: .85; }
+.btn:disabled { opacity: .5; cursor: default; }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-ghost   { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 .btn-full    { width: 100%; text-align: center; }
+.btn-link    { background: transparent; border: none; color: var(--accent); font-size: 12px; cursor: pointer; text-decoration: underline; padding: 4px; }
 .total-row td { border-top: 1px solid var(--border); border-bottom: none !important; padding-top: 10px !important; font-weight: 600; }
 
 /* ── Toast ────────────────────────────── */
@@ -219,7 +227,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 .cal-todo-check.unchecked { border: 1.5px solid var(--muted); }
 .cal-more { font-size: 10px; color: var(--muted); }
 
-/* ── Todo modal ───────────────────────── */
+/* ── Modal (shared: Todo modal + Auth modal) ── */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; }
 .modal-overlay.open { display: flex; }
 .modal {
@@ -251,6 +259,17 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 .todo-add-row input { flex: 1; }
 .empty-msg { font-size: 12px; color: var(--muted); padding: 6px 2px; }
 
+/* ── Auth screen ──────────────────────── */
+#authOverlay { background: var(--bg); z-index: 500; }
+#authOverlay .modal { width: 360px; }
+.auth-error {
+  font-size: 12px; color: var(--danger); background: var(--danger-bg);
+  padding: 8px 10px; border-radius: 6px; line-height: 1.4;
+}
+.auth-loading {
+  text-align: center; font-size: 13px; color: var(--muted); padding: 40px 0;
+}
+
 /* ── Timer / Stopwatch ────────────────── */
 .ts-tabs {
   display: flex; gap: 0; margin-bottom: 20px;
@@ -267,7 +286,6 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 .ts-panel { display: none; }
 .ts-panel.active { display: block; }
 
-/* Big clock */
 .ts-clock {
   font-family: var(--font-mono); font-size: 54px; font-weight: 600;
   text-align: center; letter-spacing: .04em; color: var(--text);
@@ -277,7 +295,6 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 .ts-clock.warning  { color: var(--warn); }
 .ts-clock.finished { color: var(--danger); }
 
-/* Adjuster row for timer */
 .ts-adj-row {
   display: flex; align-items: flex-end; justify-content: center;
   gap: 8px; margin-bottom: 20px;
@@ -295,10 +312,8 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 .ts-adj-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .ts-sep { font-family: var(--font-mono); font-size: 28px; color: var(--border); padding-bottom: 4px; }
 
-/* Control buttons */
 .ts-controls { display: flex; justify-content: center; gap: 8px; }
 
-/* Finished notice */
 .ts-finished {
   display: none; text-align: center; margin-top: 14px;
   padding: 10px; background: var(--danger-bg);
@@ -307,7 +322,6 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 }
 .ts-finished.show { display: block; }
 
-/* Lap list */
 .lap-list { margin-top: 16px; max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
 .lap-item {
   display: flex; justify-content: space-between; align-items: center;
@@ -321,17 +335,14 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
-/* ── Task table: horizontal scroll on narrow viewports ── */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* ── Responsive: tablet ───────────────────────────────── */
 @media (max-width: 980px) {
   body { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
   aside { border-left: none; border-top: 1px solid var(--border); }
   .charts-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Responsive: smartphone ───────────────────────────── */
 @media (max-width: 640px) {
   html { -webkit-text-size-adjust: 100%; }
   body { font-size: 13.5px; overflow-y: auto; }
@@ -348,11 +359,10 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 
   .date-row { flex-wrap: wrap; row-gap: 8px; }
 
-  /* Task table keeps its layout but scrolls horizontally instead of squeezing */
   .table-scroll { margin: 0 -14px; padding: 0 14px; }
   .task-table { min-width: 620px; font-size: 12.5px; }
-  .imp-pip { width: 28px; height: 28px; }               /* bigger touch target */
-  .imp-label { display: none; }                          /* free up width; color still conveys level */
+  .imp-pip { width: 28px; height: 28px; }
+  .imp-label { display: none; }
 
   .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .stat-box { padding: 12px; }
@@ -382,8 +392,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
   .modal { padding: 18px; width: 92vw; max-height: 82vh; }
   .modal-header h2, .modal .card-title { font-size: 13px; }
 
-  /* iOS Safari zooms the page in when a focused input's font-size is under 16px */
-  input[type="date"], input[type="number"], input[type="text"] { font-size: 16px; }
+  input[type="date"], input[type="number"], input[type="text"], input[type="email"], input[type="password"] { font-size: 16px; }
 
   #toast { max-width: 88vw; white-space: normal; text-align: center; font-size: 12.5px; }
 }
@@ -391,12 +400,52 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 </head>
 <body>
 
+<!-- ══════════════ Auth screen (shown until logged in) ══════════════ -->
+<div class="modal-overlay open" id="authOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="card-title" style="margin-bottom:3px">Productivity Dashboard</div>
+        <div class="modal-date" id="authSubtitle">ログインしてデータを同期</div>
+      </div>
+    </div>
+
+    <div id="authLoadingMsg" class="auth-loading hidden">読み込み中...</div>
+
+    <div id="authForm">
+      <div class="sidebar-section">
+        <label class="sidebar-label" for="authEmail">Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="username">
+        <label class="sidebar-label" for="authPassword" style="margin-top:6px">Password</label>
+        <input type="password" id="authPassword" placeholder="6文字以上" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')handleLogin()">
+      </div>
+
+      <div id="authError" class="auth-error hidden" style="margin-top:10px"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary btn-full" id="authLoginBtn" onclick="handleLogin()">ログイン</button>
+      </div>
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn btn-ghost btn-full" id="authSignupBtn" onclick="handleSignup()">新規登録</button>
+      </div>
+      <div style="text-align:center;margin-top:8px">
+        <button class="btn-link" onclick="handleForgotPassword()">パスワードを忘れた場合</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <header>
   <h1>Productivity Dashboard</h1>
-  <span class="header-date" id="headerDate"></span>
+  <div class="header-right">
+    <span class="header-date" id="headerDate"></span>
+    <span class="user-email hidden" id="userEmail"></span>
+    <button class="btn btn-ghost btn-sm hidden" id="logoutBtn" onclick="handleLogout()">ログアウト</button>
+  </div>
 </header>
 
-<main>
+<main id="mainContent" class="hidden">
 
   <!-- Task Entry -->
   <div class="card">
@@ -538,7 +587,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 </main>
 
 <!-- Sidebar -->
-<aside>
+<aside id="sidebarContent" class="hidden">
   <div class="sidebar-label">Settings</div>
 
   <div class="sidebar-section">
@@ -614,12 +663,20 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 <script>
 'use strict';
 
-// ── Storage ───────────────────────────────────────────────
-const getData  = () => JSON.parse(localStorage.getItem('pdData')  || '{}');
-const setData  = o  => localStorage.setItem('pdData',  JSON.stringify(o));
-const getTodos = () => JSON.parse(localStorage.getItem('pdTodo')  || '{}');
-const setTodos = o  => localStorage.setItem('pdTodo',  JSON.stringify(o));
-const getGoal  = () => parseFloat(localStorage.getItem('pdGoal')) || 0;
+// ══════════════════════════════════════════════════════════
+// Data layer — in-memory cache, persisted to Firestore.
+// (Previously this used localStorage directly; now Firestore
+//  under users/{uid} is the source of truth so data follows
+//  the account across devices. See the Firebase block below
+//  for how `cache` gets populated/pushed.)
+// ══════════════════════════════════════════════════════════
+const cache = { pdData: {}, pdTodo: {}, pdGoal: 0 };
+
+const getData  = () => cache.pdData;
+const setData  = o  => { cache.pdData = o; persistToCloud(); };
+const getTodos = () => cache.pdTodo;
+const setTodos = o  => { cache.pdTodo = o; persistToCloud(); };
+const getGoal  = () => parseFloat(cache.pdGoal) || 0;
 const todayStr = () => new Date().toLocaleDateString('sv-SE');
 
 function median(arr) {
@@ -751,7 +808,7 @@ function loadDay(date) {
 function saveGoal() {
   const val = parseFloat(document.getElementById('goalInput').value);
   if (isNaN(val)||val<0) { toast('Enter a valid goal.'); return; }
-  localStorage.setItem('pdGoal', val);
+  cache.pdGoal = val; persistToCloud();
   toast(`Goal set to ${val}`); updateChart();
 }
 
@@ -781,8 +838,11 @@ function updateChart() {
     document.getElementById('stat-med').textContent  = median(sc).toFixed(2);
     document.getElementById('stat-days').textContent = all.length;
     updateReflection(sc, Math.max(...sc), avg);
+  } else {
+    ['stat-avg','stat-max','stat-med','stat-days'].forEach(id=>document.getElementById(id).textContent='—');
+    document.getElementById('reflection').textContent='No data yet — log your first day above.';
   }
-  if (!dates.length) return;
+  if (!dates.length) { if(_sc){_sc.destroy();_sc=null;} if(_pc){_pc.destroy();_pc=null;} return; }
 
   const sc=dates.map(d=>raw[d].score), pr=dates.map(d=>raw[d].production);
   const goal=getGoal(), avg=sc.reduce((a,b)=>a+b,0)/sc.length;
@@ -828,11 +888,7 @@ function exportData() {
   a.download=`productivity_${todayStr()}.json`; a.click(); toast('Exported!');
 }
 
-// ── Import JSON (counterpart to exportData) ───────────────
-// Accepts the same date-keyed format produced by exportData():
-//   { "YYYY-MM-DD": { score, production, tasks:[{importance,name,progress,minutes}] } }
 function importData() {
-  // Open the native file picker; the actual work happens in handleImportFile().
   document.getElementById('importFile').click();
 }
 
@@ -841,11 +897,9 @@ function handleImportFile(input) {
   if (!file) return;
 
   const reader = new FileReader();
-
   reader.onerror = () => { toast('Could not read file.'); input.value=''; };
 
   reader.onload = e => {
-    // 1. Parse — reject anything that is not valid JSON.
     let parsed;
     try {
       parsed = JSON.parse(e.target.result);
@@ -856,9 +910,6 @@ function handleImportFile(input) {
       toast('Unexpected file format.'); input.value=''; return;
     }
 
-    // 2. Validate + normalise each day record. Scores are recomputed from
-    //    tasks via calcScores() so imported data stays internally consistent
-    //    even if the source file was hand-edited or produced by an old version.
     const clean = {};
     let valid = 0;
     for (const [date, day] of Object.entries(parsed)) {
@@ -879,7 +930,6 @@ function handleImportFile(input) {
 
     if (!valid) { toast('No valid day records found.'); input.value=''; return; }
 
-    // 3. Merge into existing data (imported days win on conflict).
     const existing = getData();
     if (Object.keys(existing).length) {
       const overlap = Object.keys(clean).filter(d => d in existing).length;
@@ -890,14 +940,11 @@ function handleImportFile(input) {
     }
     const merged = { ...existing, ...clean };
 
-    // 4. Persist and refresh every view that reads pdData.
     setData(merged);
     loadDay(document.getElementById('dateInput').value);
     updateChart();
     renderCalendar();
     toast(`Imported ${valid} day(s).`);
-
-    // Reset so selecting the same file again still fires onchange.
     input.value = '';
   };
 
@@ -906,7 +953,7 @@ function handleImportFile(input) {
 
 function clearData() {
   if (!confirm('Delete ALL saved data?')) return;
-  localStorage.removeItem('pdData');
+  setData({});
   document.getElementById('taskBody').innerHTML='';
   addTaskRow(); refreshDayTotal();
   if (_sc) _sc.destroy(); if (_pc) _pc.destroy();
@@ -1029,11 +1076,8 @@ function switchMode(mode) {
 // ════════════════════════════════════════════════════
 // TIMER
 // ════════════════════════════════════════════════════
-// Hours: step 1 (0–3)  |  Minutes: step 1 (0–59)  |  Seconds: step 10 (0–50)
-// Max total: 3 hours (10800 s)
-
-let tH=0, tM=0, tS=0;       // set values
-let tRemain=0;                // seconds remaining
+let tH=0, tM=0, tS=0;
+let tRemain=0;
 let tRunning=false;
 let tInterval=null;
 
@@ -1044,7 +1088,6 @@ function tAdj(unit, dir) {
   if (unit==='h') tH=Math.min(3,  Math.max(0,  tH+dir));
   if (unit==='m') tM=Math.min(59, Math.max(0,  tM+dir));
   if (unit==='s') tS=Math.min(50, Math.max(0,  tS+dir*10));
-  // Cap at 3 hours total
   if (tH*3600+tM*60+tS > 10800) { tH=3; tM=0; tS=0; }
   document.getElementById('tH').textContent = tH;
   document.getElementById('tM').textContent = p2(tM);
@@ -1075,7 +1118,6 @@ function tStart() {
   tInterval=setInterval(()=>{
     tRemain--;
     tRenderClock(tRemain);
-    // Colour shift
     if      (tRemain<=10) tSetClockStyle('finished');
     else if (tRemain<=30) tSetClockStyle('warning');
     else                  tSetClockStyle('running');
@@ -1130,7 +1172,6 @@ function tResume() {
 }
 
 function tRestart() {
-  // Same settings, restart from top
   document.getElementById('tStartBtn').textContent='Start';
   document.getElementById('tStartBtn').onclick=tStart;
   tStart();
@@ -1166,14 +1207,14 @@ function tBeep() {
 }
 
 // ════════════════════════════════════════════════════
-// STOPWATCH  — uses requestAnimationFrame for accuracy
+// STOPWATCH
 // ════════════════════════════════════════════════════
-let swElapsed=0;      // total ms accumulated
-let swOrigin=null;    // performance.now() when last (re)started
+let swElapsed=0;
+let swOrigin=null;
 let swRunning=false;
 let swRaf=null;
 let swLaps=[];
-let swLapBase=0;      // elapsed at last lap tap
+let swLapBase=0;
 
 function swMs() { return swRunning ? swElapsed+(performance.now()-swOrigin) : swElapsed; }
 
@@ -1206,7 +1247,7 @@ function swPause() {
   document.getElementById('swStartBtn').style.display='';
   document.getElementById('swStartBtn').textContent='Resume';
   document.getElementById('swClock').className='ts-clock';
-  swRenderClock(); // final render at exact elapsed
+  swRenderClock();
 }
 
 function swLap() {
@@ -1245,22 +1286,212 @@ function swRenderLaps() {
   });
 }
 
-// ── Init ──────────────────────────────────────────────────
-(function init() {
+// ── Dashboard init (DOM wiring only — no data-dependent rendering here;
+//    that happens in refreshAllViews(), called once Firestore data has
+//    loaded — see the Firebase block below) ─────────────────────────
+function wireDashboardUI() {
   document.getElementById('headerDate').textContent =
     new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
   const di=document.getElementById('dateInput');
   di.value=todayStr();
   di.addEventListener('change',()=>loadDay(di.value));
+}
 
+function refreshAllViews() {
   const goal=getGoal();
-  if (goal) document.getElementById('goalInput').value=goal;
-
-  loadDay(todayStr());
+  document.getElementById('goalInput').value = goal || '';
+  loadDay(document.getElementById('dateInput').value || todayStr());
   updateChart();
   renderCalendar();
-})();
+}
+
+wireDashboardUI();
 </script>
+
+<!-- ══════════════════════════════════════════════════════════
+     Firebase: Authentication + Firestore sync
+     ══════════════════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import {
+    getAuth,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    sendPasswordResetEmail
+  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    onSnapshot,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+  // このプロジェクトのfirebaseConfig。apiKey等は公開情報として扱われる前提の
+  // 値なのでHTMLに直書きして問題ありません。実際のアクセス制御はFirestoreの
+  // セキュリティルール側(下記の説明を参照)で行います。
+  const firebaseConfig = {
+    apiKey: "AIzaSyADNtTUwoBLiBYApWDO9B9mQSwAKRK-JJs",
+    authDomain: "productivity-dashboard-c5826.firebaseapp.com",
+    projectId: "productivity-dashboard-c5826",
+    storageBucket: "productivity-dashboard-c5826.firebasestorage.app",
+    messagingSenderId: "791939420206",
+    appId: "1:791939420206:web:e5d1217afe24dcd8748fbf"
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  let currentUID = null;
+  let unsubscribeSnapshot = null;
+  let suppressNextSnapshotRender = false;
+
+  const AUTH_ERROR_MESSAGES = {
+    'auth/invalid-email':        'メールアドレスの形式が正しくありません。',
+    'auth/user-not-found':       'アカウントが見つかりません。「新規登録」をお試しください。',
+    'auth/wrong-password':       'パスワードが違います。',
+    'auth/invalid-credential':   'メールアドレスまたはパスワードが違います。',
+    'auth/email-already-in-use': 'このメールアドレスは既に登録されています。「ログイン」をお試しください。',
+    'auth/weak-password':        'パスワードは6文字以上にしてください。',
+    'auth/too-many-requests':    '試行回数が多すぎます。しばらくしてから再度お試しください。',
+  };
+
+  function showAuthError(err) {
+    const el = document.getElementById('authError');
+    el.textContent = AUTH_ERROR_MESSAGES[err.code] || `エラー: ${err.message}`;
+    el.classList.remove('hidden');
+  }
+  function clearAuthError() {
+    document.getElementById('authError').classList.add('hidden');
+  }
+  function setAuthBusy(busy) {
+    document.getElementById('authLoginBtn').disabled  = busy;
+    document.getElementById('authSignupBtn').disabled = busy;
+  }
+
+  window.handleLogin = async function() {
+    clearAuthError();
+    const email = document.getElementById('authEmail').value.trim();
+    const pass  = document.getElementById('authPassword').value;
+    if (!email || !pass) { showAuthError({code:'', message:'メールアドレスとパスワードを入力してください。'}); return; }
+    setAuthBusy(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      // 以降は onAuthStateChanged が画面切り替えを担当
+    } catch (err) {
+      showAuthError(err);
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  window.handleSignup = async function() {
+    clearAuthError();
+    const email = document.getElementById('authEmail').value.trim();
+    const pass  = document.getElementById('authPassword').value;
+    if (!email || !pass) { showAuthError({code:'', message:'メールアドレスとパスワードを入力してください。'}); return; }
+    setAuthBusy(true);
+    try {
+      await createUserWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+      showAuthError(err);
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  window.handleForgotPassword = async function() {
+    clearAuthError();
+    const email = document.getElementById('authEmail').value.trim();
+    if (!email) { showAuthError({code:'', message:'まずメールアドレスを入力してください。'}); return; }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast('パスワード再設定メールを送信しました。');
+    } catch (err) {
+      showAuthError(err);
+    }
+  };
+
+  window.handleLogout = async function() {
+    await signOut(auth);
+  };
+
+  // Firestoreへの書き込み(呼び出し元のsetData/setTodos/saveGoal等から呼ばれる)
+  window.persistToCloud = async function() {
+    if (!currentUID) return;
+    suppressNextSnapshotRender = true; // 自分の書き込みで再描画がちらつくのを防ぐ
+    try {
+      await setDoc(doc(db, 'users', currentUID), {
+        pdData: cache.pdData,
+        pdTodo: cache.pdTodo,
+        pdGoal: cache.pdGoal,
+        updatedAt: serverTimestamp()
+      });
+    } catch (err) {
+      toast('同期エラー: ' + err.message);
+    }
+  };
+
+  function applyRemoteData(data) {
+    cache.pdData = data.pdData || {};
+    cache.pdTodo = data.pdTodo || {};
+    cache.pdGoal = data.pdGoal || 0;
+    refreshAllViews();
+  }
+
+  async function startSessionFor(user) {
+    currentUID = user.uid;
+
+    document.getElementById('authOverlay').classList.remove('open');
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('sidebarContent').classList.remove('hidden');
+    document.getElementById('userEmail').textContent = user.email;
+    document.getElementById('userEmail').classList.remove('hidden');
+    document.getElementById('logoutBtn').classList.remove('hidden');
+
+    // 初回読み込み
+    const ref = doc(db, 'users', currentUID);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      applyRemoteData(snap.data());
+    } else {
+      // 初回ログイン時: 空のドキュメントを作成
+      await setDoc(ref, { pdData:{}, pdTodo:{}, pdGoal:0, updatedAt: serverTimestamp() });
+      applyRemoteData({});
+    }
+
+    // 他デバイスでの変更をリアルタイム反映
+    unsubscribeSnapshot = onSnapshot(ref, (docSnap) => {
+      if (suppressNextSnapshotRender) { suppressNextSnapshotRender = false; return; }
+      if (docSnap.exists()) applyRemoteData(docSnap.data());
+    });
+  }
+
+  function endSession() {
+    currentUID = null;
+    if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+    cache.pdData = {}; cache.pdTodo = {}; cache.pdGoal = 0;
+
+    document.getElementById('mainContent').classList.add('hidden');
+    document.getElementById('sidebarContent').classList.add('hidden');
+    document.getElementById('userEmail').classList.add('hidden');
+    document.getElementById('logoutBtn').classList.add('hidden');
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPassword').value = '';
+    clearAuthError();
+    document.getElementById('authOverlay').classList.add('open');
+  }
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) startSessionFor(user);
+    else endSession();
+  });
+</script>
+
 </body>
 </html>
