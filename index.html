@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>Productivity Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
@@ -228,7 +228,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 .cal-more { font-size: 10px; color: var(--muted); }
 
 /* ── Modal (shared: Todo modal + Auth modal) ── */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; align-items: center; justify-content: center; overflow-y: auto; padding: 24px 16px; }
 .modal-overlay.open { display: flex; }
 .modal {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -391,6 +391,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
 
   .modal { padding: 18px; width: 92vw; max-height: 82vh; }
   .modal-header h2, .modal .card-title { font-size: 13px; }
+  .modal-overlay { align-items: flex-start; padding-top: 48px; }
 
   input[type="date"], input[type="number"], input[type="text"], input[type="email"], input[type="password"] { font-size: 16px; }
 
@@ -410,8 +411,6 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
       </div>
     </div>
 
-    <div id="authLoadingMsg" class="auth-loading hidden">Loading...</div>
-
     <div id="authForm">
       <div class="sidebar-section">
         <label class="sidebar-label" for="authEmail">Email</label>
@@ -422,12 +421,13 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
       </div>
 
       <div id="authError" class="auth-error hidden" style="margin-top:10px"></div>
+      <div id="authStatus" style="margin-top:10px;font-size:12px;color:var(--muted)">Connecting…</div>
 
       <div class="btn-row">
-        <button class="btn btn-primary btn-full" id="authLoginBtn" onclick="handleLogin()">Log In</button>
+        <button class="btn btn-primary btn-full" id="authLoginBtn" onclick="handleLogin()" disabled>Log In</button>
       </div>
       <div class="btn-row" style="margin-top:0">
-        <button class="btn btn-ghost btn-full" id="authSignupBtn" onclick="handleSignup()">Sign Up</button>
+        <button class="btn btn-ghost btn-full" id="authSignupBtn" onclick="handleSignup()" disabled>Sign Up</button>
       </div>
       <div style="text-align:center;margin-top:8px">
         <button class="btn-link" onclick="handleForgotPassword()">Forgot password?</button>
@@ -1351,6 +1351,42 @@ wireDashboardUI();
   let unsubscribeSnapshot = null;
   let suppressNextSnapshotRender = false;
 
+  // ── Readiness / failure surfacing ──────────────────────────
+  // Buttons start disabled (see HTML) so a slow or failed load never looks
+  // like an unresponsive tap. This function is the single place that turns
+  // the auth UI from "connecting" into either "ready" or "something's wrong".
+  const authStatusEl = document.getElementById('authStatus');
+  const authErrorEl  = document.getElementById('authError');
+  const loginBtnEl   = document.getElementById('authLoginBtn');
+  const signupBtnEl  = document.getElementById('authSignupBtn');
+
+  function markReady() {
+    authStatusEl.classList.add('hidden');
+    loginBtnEl.disabled = false;
+    signupBtnEl.disabled = false;
+  }
+  function markFailed(message) {
+    authStatusEl.classList.add('hidden');
+    authErrorEl.textContent = message;
+    authErrorEl.classList.remove('hidden');
+    loginBtnEl.disabled = true;
+    signupBtnEl.disabled = true;
+  }
+
+  // If nothing has marked the UI ready within 8s, something failed silently
+  // (blocked request, offline, misconfigured project, etc.) — say so instead
+  // of leaving the buttons looking clickable but dead.
+  const readinessTimeout = setTimeout(() => {
+    markFailed('Could not connect to the login service. Check your internet connection and reload the page.');
+  }, 8000);
+
+  window.addEventListener('error', (e) => {
+    markFailed('A script failed to load (' + (e.message || 'unknown error') + '). Try reloading the page.');
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    markFailed('Something went wrong (' + (e.reason?.message || e.reason || 'unknown error') + '). Try reloading the page.');
+  });
+
   const AUTH_ERROR_MESSAGES = {
     'auth/invalid-email':        'That email address doesn\'t look valid.',
     'auth/user-not-found':       'No account found for that email. Try "Sign Up" instead.',
@@ -1488,6 +1524,8 @@ wireDashboardUI();
   }
 
   onAuthStateChanged(auth, (user) => {
+    clearTimeout(readinessTimeout);
+    markReady();
     if (user) startSessionFor(user);
     else endSession();
   });
