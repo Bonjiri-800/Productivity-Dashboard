@@ -445,6 +445,11 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
   </div>
 </header>
 
+<div id="syncErrorBanner" class="hidden" style="grid-column:1/-1;background:var(--danger-bg);color:var(--danger);border-bottom:1px solid var(--danger);padding:10px 28px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+  <span id="syncErrorText"></span>
+  <button class="btn-link" style="color:var(--danger)" onclick="document.getElementById('syncErrorBanner').classList.add('hidden')">Dismiss</button>
+</div>
+
 <main id="mainContent" class="hidden">
 
   <!-- Task Entry -->
@@ -1373,6 +1378,17 @@ wireDashboardUI();
     signupBtnEl.disabled = true;
   }
 
+  // Persistent banner for Firestore (data sync) problems — unlike the 2.4s
+  // toast, this stays on screen until dismissed so the exact error text can
+  // actually be read (and reported back, if you need help debugging it).
+  function showSyncError(message) {
+    document.getElementById('syncErrorText').textContent = 'Sync error: ' + message;
+    document.getElementById('syncErrorBanner').classList.remove('hidden');
+  }
+  function clearSyncError() {
+    document.getElementById('syncErrorBanner').classList.add('hidden');
+  }
+
   // If nothing has marked the UI ready within 8s, something failed silently
   // (blocked request, offline, misconfigured project, etc.) — say so instead
   // of leaving the buttons looking clickable but dead.
@@ -1468,8 +1484,10 @@ wireDashboardUI();
         pdGoal: cache.pdGoal,
         updatedAt: serverTimestamp()
       });
+      clearSyncError();
     } catch (err) {
-      toast('Sync error: ' + err.message);
+      toast('Sync error — see banner above.');
+      showSyncError(err.message + (err.code ? ' (' + err.code + ')' : ''));
     }
   };
 
@@ -1490,21 +1508,36 @@ wireDashboardUI();
     document.getElementById('userEmail').classList.remove('hidden');
     document.getElementById('logoutBtn').classList.remove('hidden');
 
-    // Initial load
     const ref = doc(db, 'users', currentUID);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      applyRemoteData(snap.data());
-    } else {
-      // First login: create an empty document
-      await setDoc(ref, { pdData:{}, pdTodo:{}, pdGoal:0, updatedAt: serverTimestamp() });
-      applyRemoteData({});
+
+    // Initial load. Wrapped in try/catch: previously an error here (e.g. the
+    // Firestore database not being created yet, or security rules denying
+    // access) failed silently — the dashboard would just show up empty with
+    // no explanation, which looked like "login works but nothing syncs".
+    try {
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        applyRemoteData(snap.data());
+      } else {
+        // First login: create an empty document
+        await setDoc(ref, { pdData:{}, pdTodo:{}, pdGoal:0, updatedAt: serverTimestamp() });
+        applyRemoteData({});
+      }
+      clearSyncError();
+    } catch (err) {
+      showSyncError(err.message + (err.code ? ' (' + err.code + ')' : ''));
+      return; // don't attach a listener on top of a broken initial load
     }
 
-    // Reflect changes from other devices in real time
+    // Reflect changes from other devices in real time. The third argument is
+    // an error callback — without it, a permission/connection problem here
+    // would also fail completely silently.
     unsubscribeSnapshot = onSnapshot(ref, (docSnap) => {
       if (suppressNextSnapshotRender) { suppressNextSnapshotRender = false; return; }
       if (docSnap.exists()) applyRemoteData(docSnap.data());
+      clearSyncError();
+    }, (err) => {
+      showSyncError(err.message + (err.code ? ' (' + err.code + ')' : ''));
     });
   }
 
@@ -1520,6 +1553,7 @@ wireDashboardUI();
     document.getElementById('authEmail').value = '';
     document.getElementById('authPassword').value = '';
     clearAuthError();
+    clearSyncError();
     document.getElementById('authOverlay').classList.add('open');
   }
 
