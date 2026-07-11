@@ -406,31 +406,31 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
     <div class="modal-header">
       <div>
         <div class="card-title" style="margin-bottom:3px">Productivity Dashboard</div>
-        <div class="modal-date" id="authSubtitle">ログインしてデータを同期</div>
+        <div class="modal-date" id="authSubtitle">Sign in to sync your data</div>
       </div>
     </div>
 
-    <div id="authLoadingMsg" class="auth-loading hidden">読み込み中...</div>
+    <div id="authLoadingMsg" class="auth-loading hidden">Loading...</div>
 
     <div id="authForm">
       <div class="sidebar-section">
         <label class="sidebar-label" for="authEmail">Email</label>
         <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="username">
         <label class="sidebar-label" for="authPassword" style="margin-top:6px">Password</label>
-        <input type="password" id="authPassword" placeholder="6文字以上" autocomplete="current-password"
+        <input type="password" id="authPassword" placeholder="6+ characters" autocomplete="current-password"
           onkeydown="if(event.key==='Enter')handleLogin()">
       </div>
 
       <div id="authError" class="auth-error hidden" style="margin-top:10px"></div>
 
       <div class="btn-row">
-        <button class="btn btn-primary btn-full" id="authLoginBtn" onclick="handleLogin()">ログイン</button>
+        <button class="btn btn-primary btn-full" id="authLoginBtn" onclick="handleLogin()">Log In</button>
       </div>
       <div class="btn-row" style="margin-top:0">
-        <button class="btn btn-ghost btn-full" id="authSignupBtn" onclick="handleSignup()">新規登録</button>
+        <button class="btn btn-ghost btn-full" id="authSignupBtn" onclick="handleSignup()">Sign Up</button>
       </div>
       <div style="text-align:center;margin-top:8px">
-        <button class="btn-link" onclick="handleForgotPassword()">パスワードを忘れた場合</button>
+        <button class="btn-link" onclick="handleForgotPassword()">Forgot password?</button>
       </div>
     </div>
   </div>
@@ -441,7 +441,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,
   <div class="header-right">
     <span class="header-date" id="headerDate"></span>
     <span class="user-email hidden" id="userEmail"></span>
-    <button class="btn btn-ghost btn-sm hidden" id="logoutBtn" onclick="handleLogout()">ログアウト</button>
+    <button class="btn btn-ghost btn-sm hidden" id="logoutBtn" onclick="handleLogout()">Log Out</button>
   </div>
 </header>
 
@@ -1331,9 +1331,9 @@ wireDashboardUI();
     serverTimestamp
   } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-  // このプロジェクトのfirebaseConfig。apiKey等は公開情報として扱われる前提の
-  // 値なのでHTMLに直書きして問題ありません。実際のアクセス制御はFirestoreの
-  // セキュリティルール側(下記の説明を参照)で行います。
+  // This project's firebaseConfig. Values like apiKey are meant to be public
+  // and are safe to embed directly in the HTML. Actual access control is
+  // handled by Firestore Security Rules (see the notes shared separately).
   const firebaseConfig = {
     apiKey: "AIzaSyADNtTUwoBLiBYApWDO9B9mQSwAKRK-JJs",
     authDomain: "productivity-dashboard-c5826.firebaseapp.com",
@@ -1352,18 +1352,18 @@ wireDashboardUI();
   let suppressNextSnapshotRender = false;
 
   const AUTH_ERROR_MESSAGES = {
-    'auth/invalid-email':        'メールアドレスの形式が正しくありません。',
-    'auth/user-not-found':       'アカウントが見つかりません。「新規登録」をお試しください。',
-    'auth/wrong-password':       'パスワードが違います。',
-    'auth/invalid-credential':   'メールアドレスまたはパスワードが違います。',
-    'auth/email-already-in-use': 'このメールアドレスは既に登録されています。「ログイン」をお試しください。',
-    'auth/weak-password':        'パスワードは6文字以上にしてください。',
-    'auth/too-many-requests':    '試行回数が多すぎます。しばらくしてから再度お試しください。',
+    'auth/invalid-email':        'That email address doesn\'t look valid.',
+    'auth/user-not-found':       'No account found for that email. Try "Sign Up" instead.',
+    'auth/wrong-password':       'Incorrect password.',
+    'auth/invalid-credential':   'Incorrect email or password.',
+    'auth/email-already-in-use': 'That email is already registered. Try "Log In" instead.',
+    'auth/weak-password':        'Password must be at least 6 characters.',
+    'auth/too-many-requests':    'Too many attempts. Please try again later.',
   };
 
   function showAuthError(err) {
     const el = document.getElementById('authError');
-    el.textContent = AUTH_ERROR_MESSAGES[err.code] || `エラー: ${err.message}`;
+    el.textContent = AUTH_ERROR_MESSAGES[err.code] || `Error: ${err.message}`;
     el.classList.remove('hidden');
   }
   function clearAuthError() {
@@ -1378,11 +1378,11 @@ wireDashboardUI();
     clearAuthError();
     const email = document.getElementById('authEmail').value.trim();
     const pass  = document.getElementById('authPassword').value;
-    if (!email || !pass) { showAuthError({code:'', message:'メールアドレスとパスワードを入力してください。'}); return; }
+    if (!email || !pass) { showAuthError({code:'', message:'Please enter your email and password.'}); return; }
     setAuthBusy(true);
     try {
       await signInWithEmailAndPassword(auth, email, pass);
-      // 以降は onAuthStateChanged が画面切り替えを担当
+      // onAuthStateChanged handles the screen switch from here
     } catch (err) {
       showAuthError(err);
     } finally {
@@ -1394,7 +1394,7 @@ wireDashboardUI();
     clearAuthError();
     const email = document.getElementById('authEmail').value.trim();
     const pass  = document.getElementById('authPassword').value;
-    if (!email || !pass) { showAuthError({code:'', message:'メールアドレスとパスワードを入力してください。'}); return; }
+    if (!email || !pass) { showAuthError({code:'', message:'Please enter your email and password.'}); return; }
     setAuthBusy(true);
     try {
       await createUserWithEmailAndPassword(auth, email, pass);
@@ -1408,10 +1408,10 @@ wireDashboardUI();
   window.handleForgotPassword = async function() {
     clearAuthError();
     const email = document.getElementById('authEmail').value.trim();
-    if (!email) { showAuthError({code:'', message:'まずメールアドレスを入力してください。'}); return; }
+    if (!email) { showAuthError({code:'', message:'Please enter your email first.'}); return; }
     try {
       await sendPasswordResetEmail(auth, email);
-      toast('パスワード再設定メールを送信しました。');
+      toast('Password reset email sent.');
     } catch (err) {
       showAuthError(err);
     }
@@ -1421,10 +1421,10 @@ wireDashboardUI();
     await signOut(auth);
   };
 
-  // Firestoreへの書き込み(呼び出し元のsetData/setTodos/saveGoal等から呼ばれる)
+  // Writes to Firestore (called from setData/setTodos/saveGoal etc.)
   window.persistToCloud = async function() {
     if (!currentUID) return;
-    suppressNextSnapshotRender = true; // 自分の書き込みで再描画がちらつくのを防ぐ
+    suppressNextSnapshotRender = true; // avoid a flicker from re-rendering our own write
     try {
       await setDoc(doc(db, 'users', currentUID), {
         pdData: cache.pdData,
@@ -1433,7 +1433,7 @@ wireDashboardUI();
         updatedAt: serverTimestamp()
       });
     } catch (err) {
-      toast('同期エラー: ' + err.message);
+      toast('Sync error: ' + err.message);
     }
   };
 
@@ -1454,18 +1454,18 @@ wireDashboardUI();
     document.getElementById('userEmail').classList.remove('hidden');
     document.getElementById('logoutBtn').classList.remove('hidden');
 
-    // 初回読み込み
+    // Initial load
     const ref = doc(db, 'users', currentUID);
     const snap = await getDoc(ref);
     if (snap.exists()) {
       applyRemoteData(snap.data());
     } else {
-      // 初回ログイン時: 空のドキュメントを作成
+      // First login: create an empty document
       await setDoc(ref, { pdData:{}, pdTodo:{}, pdGoal:0, updatedAt: serverTimestamp() });
       applyRemoteData({});
     }
 
-    // 他デバイスでの変更をリアルタイム反映
+    // Reflect changes from other devices in real time
     unsubscribeSnapshot = onSnapshot(ref, (docSnap) => {
       if (suppressNextSnapshotRender) { suppressNextSnapshotRender = false; return; }
       if (docSnap.exists()) applyRemoteData(docSnap.data());
