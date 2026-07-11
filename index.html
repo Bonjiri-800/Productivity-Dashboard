@@ -1320,7 +1320,10 @@ wireDashboardUI();
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
   import {
-    getAuth,
+    initializeAuth,
+    indexedDBLocalPersistence,
+    browserLocalPersistence,
+    inMemoryPersistence,
     onAuthStateChanged,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -1349,7 +1352,15 @@ wireDashboardUI();
   };
 
   const app  = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+  // Mobile Safari (and some in-app browsers, especially in Private Browsing)
+  // have a known bug where Firebase Auth's default IndexedDB persistence
+  // hangs forever with no error — this is exactly the "connection failed"
+  // timeout you keep seeing. Falling back through localStorage, then plain
+  // in-memory storage, means login still completes even where IndexedDB is
+  // broken (in-memory just won't survive a page reload).
+  const auth = initializeAuth(app, {
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence]
+  });
   const db   = getFirestore(app);
 
   let currentUID = null;
